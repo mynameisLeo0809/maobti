@@ -1,0 +1,1069 @@
+
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MaoBti — 人猫关系身份定位测试</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0c0a;
+    --surface: #1a1714;
+    --card: #221e1a;
+    --accent: #e8b86d;
+    --accent2: #d4845a;
+    --accent3: #a0c4b8;
+    --text: #f0ebe3;
+    --muted: #8a8178;
+    --border: #332e28;
+    --selected: #e8b86d22;
+    --selected-border: #e8b86d;
+    --radius: 14px;
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Noto Serif SC’, serif;
+min-height: 100vh;
+overflow-x: hidden;
+}
+
+/* Noise overlay */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
+pointer-events: none;
+z-index: 1000;
+opacity: 0.5;
+}
+
+.app {
+max-width: 600px;
+margin: 0 auto;
+padding: 0 16px 60px;
+position: relative;
+}
+
+/* ===== SCREENS ===== */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ===== COVER ===== */
+#cover {
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 40px 16px;
+gap: 0;
+}
+#cover.active { display: flex; }
+
+.cover-paw {
+font-size: 80px;
+animation: float 3s ease-in-out infinite;
+filter: drop-shadow(0 0 30px rgba(232,184,109,0.4));
+margin-bottom: 24px;
+}
+
+@keyframes float {
+0%, 100% { transform: translateY(0) rotate(-5deg); }
+50% { transform: translateY(-12px) rotate(5deg); }
+}
+
+.cover-badge {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+letter-spacing: 4px;
+color: var(–accent);
+text-transform: uppercase;
+border: 1px solid var(–accent);
+padding: 5px 14px;
+border-radius: 100px;
+margin-bottom: 20px;
+opacity: 0.8;
+}
+
+.cover-title {
+font-size: clamp(52px, 16vw, 80px);
+font-weight: 900;
+line-height: 0.95;
+letter-spacing: -2px;
+background: linear-gradient(135deg, var(–accent) 0%, var(–accent2) 50%, #f0ebe3 100%);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+margin-bottom: 8px;
+}
+
+.cover-subtitle {
+font-size: 14px;
+color: var(–muted);
+letter-spacing: 2px;
+margin-bottom: 32px;
+font-family: ‘Space Mono’, monospace;
+}
+
+.cover-desc {
+font-size: 15px;
+line-height: 1.8;
+color: #c4b9aa;
+max-width: 380px;
+margin-bottom: 44px;
+}
+
+.cover-desc em {
+color: var(–accent);
+font-style: normal;
+}
+
+.btn-start {
+background: linear-gradient(135deg, var(–accent), var(–accent2));
+color: #0e0c0a;
+border: none;
+padding: 16px 48px;
+border-radius: 100px;
+font-size: 16px;
+font-weight: 700;
+font-family: ‘Noto Serif SC’, serif;
+cursor: pointer;
+letter-spacing: 2px;
+box-shadow: 0 8px 32px rgba(232,184,109,0.3);
+transition: all 0.2s;
+}
+
+.btn-start:hover {
+transform: translateY(-2px);
+box-shadow: 0 12px 40px rgba(232,184,109,0.4);
+}
+
+.cover-note {
+margin-top: 24px;
+font-size: 12px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+}
+
+/* ===== QUIZ ===== */
+#quiz { padding-top: 0; }
+#quiz.active { display: block; }
+
+.quiz-header {
+position: sticky;
+top: 0;
+z-index: 100;
+background: linear-gradient(to bottom, var(–bg) 80%, transparent);
+padding: 20px 0 12px;
+}
+
+.progress-info {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 10px;
+}
+
+.progress-label {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–muted);
+letter-spacing: 1px;
+}
+
+.progress-fraction {
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+color: var(–accent);
+font-weight: 700;
+}
+
+.progress-bar {
+height: 3px;
+background: var(–border);
+border-radius: 10px;
+overflow: hidden;
+}
+
+.progress-fill {
+height: 100%;
+background: linear-gradient(90deg, var(–accent), var(–accent2));
+border-radius: 10px;
+transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+.section-tag {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+letter-spacing: 2px;
+color: var(–accent);
+background: rgba(232,184,109,0.1);
+border: 1px solid rgba(232,184,109,0.2);
+padding: 4px 12px;
+border-radius: 100px;
+margin: 28px 0 12px;
+text-transform: uppercase;
+}
+
+.question-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 24px;
+margin-bottom: 16px;
+animation: slideUp 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes slideUp {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.question-num {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+color: var(–muted);
+letter-spacing: 2px;
+margin-bottom: 10px;
+}
+
+.question-text {
+font-size: 16px;
+line-height: 1.7;
+font-weight: 700;
+color: var(–text);
+margin-bottom: 20px;
+}
+
+.options {
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+.option {
+display: flex;
+align-items: flex-start;
+gap: 12px;
+padding: 14px 16px;
+background: var(–surface);
+border: 1.5px solid var(–border);
+border-radius: 10px;
+cursor: pointer;
+transition: all 0.2s;
+text-align: left;
+position: relative;
+overflow: hidden;
+}
+
+.option::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: linear-gradient(135deg, rgba(232,184,109,0.05), transparent);
+opacity: 0;
+transition: opacity 0.2s;
+}
+
+.option:hover::before { opacity: 1; }
+
+.option:hover {
+border-color: rgba(232,184,109,0.4);
+transform: translateX(4px);
+}
+
+.option.selected {
+background: var(–selected);
+border-color: var(–selected-border);
+}
+
+.option.selected::before { opacity: 1; }
+
+.option-letter {
+width: 26px;
+height: 26px;
+border-radius: 50%;
+border: 1.5px solid var(–muted);
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–muted);
+flex-shrink: 0;
+transition: all 0.2s;
+}
+
+.option.selected .option-letter {
+background: var(–accent);
+border-color: var(–accent);
+color: #0e0c0a;
+font-weight: 700;
+}
+
+.option-text {
+font-size: 14px;
+line-height: 1.65;
+color: #c4b9aa;
+transition: color 0.2s;
+}
+
+.option.selected .option-text {
+color: var(–text);
+}
+
+/* Nav buttons */
+.quiz-nav {
+display: flex;
+gap: 12px;
+margin-top: 28px;
+padding-bottom: 20px;
+}
+
+.btn-nav {
+flex: 1;
+padding: 14px;
+border-radius: 10px;
+font-size: 14px;
+font-family: ‘Noto Serif SC’, serif;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.2s;
+border: none;
+letter-spacing: 1px;
+}
+
+.btn-prev {
+background: var(–card);
+border: 1.5px solid var(–border);
+color: var(–muted);
+}
+
+.btn-prev:hover { border-color: var(–muted); color: var(–text); }
+
+.btn-next {
+background: linear-gradient(135deg, var(–accent), var(–accent2));
+color: #0e0c0a;
+box-shadow: 0 4px 16px rgba(232,184,109,0.25);
+}
+
+.btn-next:hover { box-shadow: 0 6px 24px rgba(232,184,109,0.4); transform: translateY(-1px); }
+.btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ===== RESULT ===== */
+#result { display: none; padding-top: 0; }
+#result.active { display: block; }
+
+.result-hero {
+min-height: 60vw;
+max-height: 360px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+position: relative;
+overflow: hidden;
+border-radius: var(–radius);
+margin-top: 24px;
+padding: 40px 24px;
+}
+
+.result-hero::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: radial-gradient(ellipse at 50% 0%, rgba(232,184,109,0.25) 0%, transparent 70%),
+radial-gradient(ellipse at 80% 100%, rgba(212,132,90,0.15) 0%, transparent 60%);
+}
+
+.result-hero-bg {
+position: absolute;
+inset: 0;
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+}
+
+.result-emoji {
+font-size: 72px;
+position: relative;
+z-index: 1;
+filter: drop-shadow(0 0 20px rgba(232,184,109,0.5));
+animation: pulse 2s ease-in-out infinite;
+margin-bottom: 16px;
+}
+
+@keyframes pulse {
+0%, 100% { transform: scale(1); }
+50% { transform: scale(1.05); }
+}
+
+.result-type-code {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+letter-spacing: 5px;
+color: var(–accent);
+position: relative;
+z-index: 1;
+margin-bottom: 8px;
+}
+
+.result-type-name {
+font-size: clamp(28px, 8vw, 42px);
+font-weight: 900;
+line-height: 1.1;
+position: relative;
+z-index: 1;
+background: linear-gradient(135deg, var(–accent), var(–accent2), #f0ebe3);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+margin-bottom: 4px;
+}
+
+.result-type-sub {
+font-size: 13px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+position: relative;
+z-index: 1;
+}
+
+.result-body {
+padding: 28px 0;
+}
+
+.result-desc-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 24px;
+margin-bottom: 16px;
+}
+
+.result-desc-card h3 {
+font-size: 13px;
+color: var(–accent);
+font-family: ‘Space Mono’, monospace;
+letter-spacing: 2px;
+margin-bottom: 12px;
+}
+
+.result-desc-card p {
+font-size: 15px;
+line-height: 1.9;
+color: #c4b9aa;
+}
+
+.result-tag-row {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+margin-top: 14px;
+}
+
+.result-tag {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+padding: 5px 12px;
+border-radius: 100px;
+border: 1px solid var(–border);
+color: var(–muted);
+letter-spacing: 1px;
+}
+
+.result-scores {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 24px;
+margin-bottom: 16px;
+}
+
+.result-scores h3 {
+font-size: 13px;
+color: var(–accent);
+font-family: ‘Space Mono’, monospace;
+letter-spacing: 2px;
+margin-bottom: 16px;
+}
+
+.score-row {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-bottom: 12px;
+}
+
+.score-label {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–muted);
+width: 90px;
+flex-shrink: 0;
+letter-spacing: 1px;
+}
+
+.score-bar-bg {
+flex: 1;
+height: 6px;
+background: var(–border);
+border-radius: 10px;
+overflow: hidden;
+}
+
+.score-bar-fill {
+height: 100%;
+border-radius: 10px;
+background: linear-gradient(90deg, var(–accent), var(–accent2));
+transition: width 1s cubic-bezier(0.4,0,0.2,1);
+width: 0%;
+}
+
+.score-val {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–accent);
+width: 20px;
+text-align: right;
+}
+
+.btn-retry {
+width: 100%;
+padding: 16px;
+border-radius: 10px;
+font-size: 15px;
+font-family: ‘Noto Serif SC’, serif;
+font-weight: 700;
+cursor: pointer;
+background: var(–card);
+border: 1.5px solid var(–border);
+color: var(–muted);
+transition: all 0.2s;
+letter-spacing: 2px;
+margin-top: 8px;
+}
+
+.btn-retry:hover {
+border-color: var(–accent);
+color: var(–accent);
+}
+
+.share-hint {
+text-align: center;
+font-size: 12px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+margin-top: 20px;
+letter-spacing: 1px;
+}
+
+.cat-divider {
+text-align: center;
+color: var(–border);
+font-size: 20px;
+letter-spacing: 8px;
+margin: 24px 0;
+}
+
+/* Transition */
+.fade-in {
+animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(16px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.result-axis-badge {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+padding: 3px 10px;
+border-radius: 100px;
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1px;
+margin-right: 6px;
+margin-bottom: 8px;
+}
+
+.badge-power { background: rgba(160,196,184,0.15); color: var(–accent3); border: 1px solid rgba(160,196,184,0.3); }
+.badge-intimacy { background: rgba(232,184,109,0.12); color: var(–accent); border: 1px solid rgba(232,184,109,0.25); }
+.badge-vibe { background: rgba(212,132,90,0.12); color: var(–accent2); border: 1px solid rgba(212,132,90,0.25); }
+.badge-economy { background: rgba(240,235,227,0.08); color: #c4b9aa; border: 1px solid rgba(240,235,227,0.15); }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- COVER -->
+
+  <div id="cover" class="screen active">
+    <div class="cover-paw">🐾</div>
+    <div class="cover-badge">人猫关系测评系统 v1.0</div>
+    <div class="cover-title">MaoBti</div>
+    <div class="cover-subtitle">THE CAT PERSONALITY INDEX</div>
+    <p class="cover-desc">
+      你以为你在<em>养猫</em>，<br>
+      还是猫在<em>养你</em>？<br><br>
+      12道题，找到你家的<em>真实权力结构</em>。
+    </p>
+    <button class="btn-start" onclick="startQuiz()">🐱 开始测试</button>
+    <div class="cover-note">共 12 题 · 约 3 分钟</div>
+  </div>
+
+  <!-- QUIZ -->
+
+  <div id="quiz" class="screen">
+    <div class="quiz-header">
+      <div class="progress-info">
+        <span class="progress-label">MAOBTI ASSESSMENT</span>
+        <span class="progress-fraction" id="progress-fraction">1 / 12</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:8.33%"></div>
+      </div>
+    </div>
+
+```
+<div id="questions-container"></div>
+
+<div class="quiz-nav">
+  <button class="btn-nav btn-prev" id="btn-prev" onclick="prevQuestion()" style="display:none">← 上一题</button>
+  <button class="btn-nav btn-next" id="btn-next" onclick="nextQuestion()" disabled>下一题 →</button>
+</div>
+```
+
+  </div>
+
+  <!-- RESULT -->
+
+  <div id="result" class="screen">
+    <div class="result-hero fade-in">
+      <div class="result-hero-bg"></div>
+      <div class="result-emoji" id="result-emoji">🐈</div>
+      <div class="result-type-code" id="result-code">TYPE</div>
+      <div class="result-type-name" id="result-name">结果类型</div>
+      <div class="result-type-sub" id="result-sub">subtitle</div>
+    </div>
+
+```
+<div class="result-body fade-in">
+  <div class="result-desc-card">
+    <h3>📋 你的画像</h3>
+    <p id="result-desc">描述</p>
+    <div class="result-tag-row" id="result-tags"></div>
+  </div>
+
+  <div class="result-scores">
+    <h3>📊 四轴分析</h3>
+    <div class="score-row">
+      <span class="score-label">权力轴 Power</span>
+      <div class="score-bar-bg"><div class="score-bar-fill" id="bar-power"></div></div>
+      <span class="score-val" id="val-power">-</span>
+    </div>
+    <div class="score-row">
+      <span class="score-label">情感轴 Intimacy</span>
+      <div class="score-bar-bg"><div class="score-bar-fill" id="bar-intimacy"></div></div>
+      <span class="score-val" id="val-intimacy">-</span>
+    </div>
+    <div class="score-row">
+      <span class="score-label">行为轴 Vibe</span>
+      <div class="score-bar-bg"><div class="score-bar-fill" id="bar-vibe"></div></div>
+      <span class="score-val" id="val-vibe">-</span>
+    </div>
+    <div class="score-row">
+      <span class="score-label">财务轴 Economy</span>
+      <div class="score-bar-bg"><div class="score-bar-fill" id="bar-economy"></div></div>
+      <span class="score-val" id="val-economy">-</span>
+    </div>
+  </div>
+
+  <div class="cat-divider">· 🐾 ·</div>
+
+  <button class="btn-retry" onclick="resetQuiz()">🔄 再测一次</button>
+  <div class="share-hint">截图分享给铲屎官朋友 👆</div>
+</div>
+```
+
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  {
+    section: "第一部分：权力轴 (Power)",
+    sectionIcon: "👑",
+    sectionDesc: "谁是家里的真 CEO？",
+    axis: "power",
+    q: "1. 睡觉时，关于「领土高度」的分配：",
+    options: [
+      { letter: "A", text: "猫睡高处或床中心，我蜷缩在边缘，甚至被子被压住了也不敢用力拽。", val: "B" },
+      { letter: "B", text: "我睡我的，猫睡它的，它如果挤到我，我会把它挪开。", val: "S" },
+      { letter: "C", text: "各睡各的房间或地盘，互不干扰，像两个合租室友。", val: "F" },
+      { letter: "D", text: "拥抱而眠，它会根据我的姿势调整位置，彼此都很舒服。", val: "C" },
+    ]
+  },
+  {
+    axis: "power",
+    q: "2. 当你想关上某扇门（如浴室或卧室）时：",
+    options: [
+      { letter: "A", text: "只要关门它就疯狂挠门或惨叫，我只能被迫打开，「全屋自由」是它的底线。", val: "B" },
+      { letter: "B", text: "关门后它会等在门口，我一出来它就骂骂咧咧，但我还是会关。", val: "S" },
+      { letter: "C", text: "关不关门它都无所谓，它根本不在意你在哪个房间。", val: "F" },
+      { letter: "D", text: "它知道关门意味着你在忙，会安静地在门外做自己的事。", val: "C" },
+    ]
+  },
+  {
+    axis: "power",
+    q: "3. 关于「家庭规则」的制定：",
+    options: [
+      { letter: "A", text: "它想什么时候吃、在哪睡、翻哪个垃圾桶，全凭它心情，我只能跟在后面收拾。", val: "B" },
+      { letter: "B", text: "我试图建立规则（如不准上桌），虽然它总犯，但我从未放弃说教。", val: "S" },
+      { letter: "C", text: "没有规则，它玩它的，我玩我的，只要不把房子烧了就行。", val: "F" },
+      { letter: "D", text: "有默契的规则，它知道哪些动作会让你不开心，通常会点到为止。", val: "C" },
+    ]
+  },
+  {
+    section: "第二部分：情感轴 (Intimacy)",
+    sectionIcon: "💛",
+    sectionDesc: "你们的爱是单向还是双向？",
+    axis: "intimacy",
+    q: "4. 当你下班回家推开门的那一刻：",
+    options: [
+      { letter: "A", text: "我疯狂寻找它的身影并试图强吻，它眼神里写满了「这人类怎么又回来了」。", val: "O" },
+      { letter: "B", text: "没看到它，它甚至懒得从窝里抬一下头。", val: "I" },
+      { letter: "C", text: "它在远处冷冷地看着你，确认你没带外人回来后继续洗脸。", val: "A" },
+      { letter: "D", text: "它会小跑过来迎接，蹭蹭你的腿，发出一声温柔的问候。", val: "U" },
+    ]
+  },
+  {
+    axis: "intimacy",
+    q: "5. 关于「亲密互动」的频率：",
+    options: [
+      { letter: "A", text: "我一天喊它八百遍名字，它能回我一次头都算我赢。", val: "O" },
+      { letter: "B", text: "我在自言自语，它在神游太空，我们之间有物理连接但没灵魂信号。", val: "I" },
+      { letter: "C", text: "只有在它需要罐头或被窝时，才会展示那虚假的「营业式亲热」。", val: "A" },
+      { letter: "D", text: "我心情不好时，它会主动靠过来，这种精神支持是双向的。", val: "U" },
+    ]
+  },
+  {
+    axis: "intimacy",
+    q: "6. 如果你突然对着猫大哭：",
+    options: [
+      { letter: "A", text: "它的第一反应是：这人类疯了，我的自动喂食器还能准时工作吗？", val: "O" },
+      { letter: "B", text: "它会吓一跳，然后迅速逃离现场，找个安静的地方躲起来。", val: "I" },
+      { letter: "C", text: "它会歪头看你三秒钟，然后开始舔自己的后腿。", val: "A" },
+      { letter: "D", text: "它会走过来闻闻你的眼泪，甚至用头顶一顶你表示安慰。", val: "U" },
+    ]
+  },
+  {
+    section: "第三部分：行为轴 (Vibe)",
+    sectionIcon: "⚡",
+    sectionDesc: "家里的空气是宁静还是狂暴？",
+    axis: "vibe",
+    q: "7. 关于家具和装修的「战损」情况：",
+    options: [
+      { letter: "A", text: "满目疮痍。沙发是它的抓板，窗帘是它的攀岩墙，桌面没有易碎品。", val: "S" },
+      { letter: "B", text: "基本完整。它偶尔会犯错，但大多数时候是个安静的糯米糍。", val: "M" },
+      { letter: "C", text: "行为迷惑。它不拆家，但经常在半夜盯着天花板的虚空发出低吼。", val: "K" },
+      { letter: "D", text: "优雅得体。它甚至懂得避开你新买的乐高模型。", val: "T" },
+    ]
+  },
+  {
+    axis: "vibe",
+    q: "8. 凌晨三点的「跑酷时间」：",
+    options: [
+      { letter: "A", text: "它是暗夜里的特种兵，你的肚子和头是它借力起跳的踏板。", val: "S" },
+      { letter: "B", text: "它像个秤砣一样沉在被窝里，除非地球爆炸，否则绝不起床。", val: "M" },
+      { letter: "C", text: "它在客厅玩那种带球的转盘，声音诡异且富有节奏感。", val: "K" },
+      { letter: "D", text: "它和你保持同样的生物钟，你睡它也睡，你起它也起。", val: "T" },
+    ]
+  },
+  {
+    axis: "vibe",
+    q: "9. 当你拿出指甲剪或洗澡盆时：",
+    options: [
+      { letter: "A", text: "现场立刻变成凶案现场，它的尖叫声能惊动整栋楼。", val: "S" },
+      { letter: "B", text: "认命般地摊平，虽然眼神里全是幽怨，但不敢反抗。", val: "M" },
+      { letter: "C", text: "表现出极度的智商压制，总能找到你够不着的死角钻进去。", val: "K" },
+      { letter: "D", text: "非常配合，虽然不喜欢，但因为它信任你，所以愿意忍受。", val: "T" },
+    ]
+  },
+  {
+    section: "第四部分：财务轴 (Economy)",
+    sectionIcon: "💸",
+    sectionDesc: "你的钱包还好吗？",
+    axis: "economy",
+    q: "10. 买猫用品时的心理活动：",
+    options: [
+      { letter: "A", text: "只要是它可能喜欢的，哪怕这个月吃土，我也会刷卡买最新款。", val: "S" },
+      { letter: "B", text: "我省吃俭用是为了它能吃上进口罐头，这种牺牲感让我充实。", val: "P" },
+      { letter: "C", text: "我买的很贵，但主要因为我想在朋友圈展示某种「精英生活」。", val: "E" },
+      { letter: "D", text: "追求极致性价比，科学配方，不交智商税，省钱又省心。", val: "E" },
+    ]
+  },
+  {
+    axis: "economy",
+    q: "11. 关于「突发开销」（如生病或弄坏东西）：",
+    options: [
+      { letter: "A", text: "它就是个行走的人民币碎纸机，我辛苦一年，工资全进了宠物医院。", val: "S" },
+      { letter: "B", text: "它的医疗金是我的第一储备，我甚至没给自己买保险，但给它买了。", val: "P" },
+      { letter: "C", text: "虽然平时不怎么交流，但它一旦生病，那账单厚度能让你当场破产。", val: "E" },
+      { letter: "D", text: "它是那种「体质型报恩猫」，除了疫苗和驱虫，基本不让你花冤枉钱。", val: "E" },
+    ]
+  },
+  {
+    axis: "economy",
+    q: "12. 关于自我生活质量的影响：",
+    options: [
+      { letter: "A", text: "我的衣服全是猫毛，家里一股猫砂味，但我对此甘之如饴。", val: "S" },
+      { letter: "B", text: "我已经好几年没出去旅游了，因为怕它一个人在家受委屈。", val: "P" },
+      { letter: "C", text: "它是家里最昂贵的「软装」，它负责美，我负责交房租。", val: "E" },
+      { letter: "D", text: "养猫提升了我的生活质量，我们互相成就，没有谁拖累谁。", val: "E" },
+    ]
+  },
+];
+
+const resultTypes = {
+  // Power axis dominant
+  B: {
+    emoji: "👑",
+    code: "B.O.S.S.",
+    name: "顶级权贵型",
+    sub: "Boss Cat · Human Servant",
+    desc: "你的家里，猫是神，你是祭品。它不住在你家，是你住在它的领地里交房租。每一道门缝、每一块床垫、每一片阳光都属于它，你的唯一价值是准时开罐、适时铲屎，以及在它需要暖手包时提供体温。但……你甘之如饴，对吧？",
+    tags: ["家里地位最低", "猫是立法者", "我是执行器", "甘心臣服"],
+    scores: { power: 95, intimacy: 40, vibe: 60, economy: 55 }
+  },
+  S: {
+    emoji: "🥺",
+    code: "S.I.M.P.",
+    name: "终极舔狗型",
+    sub: "Single-side Intense Meow Partner",
+    desc: "你是典型的单向奔赴——你付出所有，它给你薄情。你对它好到令人心疼，省下来的钱全买了进口粮，但它回馈你的只有背影和偶尔翻肚子时的「营业假笑」。这种感情叫做：穷且卑微，但乐在其中。",
+    tags: ["单向深情", "钱包已陷落", "感情还在努力", "苦中作乐"],
+    scores: { power: 50, intimacy: 30, vibe: 75, economy: 90 }
+  },
+  F: {
+    emoji: "🌐",
+    code: "F.A.K.E.",
+    name: "赛博绿茶型",
+    sub: "Filtered Aesthetic Kitten Existence",
+    desc: "你们是住在同一屋檐下的高级陌生人。现实里互不打扰，朋友圈里岁月静好。它是你「精致生活」滤镜的最佳道具：一张慵懒的猫咪照片，点赞过百。但你们的灵魂……从未真正接触过。",
+    tags: ["精神分离", "滤镜关系", "社媒体面", "各自为政"],
+    scores: { power: 35, intimacy: 15, vibe: 40, economy: 65 }
+  },
+  C: {
+    emoji: "✨",
+    code: "C.U.T.E.",
+    name: "梦中情猫型",
+    sub: "Cosmic Understanding Two-soul Entity",
+    desc: "你上辈子可能拯救了银河系，才换来这种神仙关系。它懂你，你懂它，家里有规矩但不压迫，有温柔但不溺爱。它在你难过时靠过来，你在它生病时彻夜不眠。这不是养猫，这是灵魂的双向奔赴。",
+    tags: ["双向深情", "灵魂伴侣", "默契满分", "羡煞旁人"],
+    scores: { power: 60, intimacy: 95, vibe: 85, economy: 70 }
+  },
+  // Intimacy fallback
+  O: {
+    emoji: "😭",
+    code: "S.I.M.P.",
+    name: "终极舔狗型",
+    sub: "One-sided Love Story",
+    desc: "你是典型的单向奔赴——你付出所有，它给你薄情。你对它好到令人心疼，省下来的钱全买了进口粮，但它回馈你的只有背影和偶尔翻肚子时的「营业假笑」。这种感情叫做：穷且卑微，但乐在其中。",
+    tags: ["单向深情", "钱包已陷落", "感情还在努力", "苦中作乐"],
+    scores: { power: 50, intimacy: 25, vibe: 75, economy: 88 }
+  },
+  I: {
+    emoji: "🌫️",
+    code: "F.A.K.E.",
+    name: "赛博绿茶型",
+    sub: "Invisible Connection",
+    desc: "你们是住在同一屋檐下的高级陌生人。现实里互不打扰，朋友圈里岁月静好。它是你「精致生活」滤镜的最佳道具：一张慵懒的猫咪照片，点赞过百。但你们的灵魂……从未真正接触过。",
+    tags: ["精神分离", "滤镜关系", "社媒体面", "各自为政"],
+    scores: { power: 35, intimacy: 10, vibe: 40, economy: 60 }
+  },
+};
+
+let currentQ = 0;
+let answers = new Array(12).fill(null);
+
+function startQuiz() {
+  showScreen('quiz');
+  renderQuestion(0);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function renderQuestion(index) {
+  const q = questions[index];
+  const container = document.getElementById('questions-container');
+  
+  let sectionHtml = '';
+  if (q.section) {
+    sectionHtml = `<div class="section-tag">${q.sectionIcon} ${q.section} — ${q.sectionDesc}</div>`;
+  }
+
+  const optionsHtml = q.options.map((opt, i) => `
+    <button class="option ${answers[index] === i ? 'selected' : ''}" onclick="selectOption(${index}, ${i})">
+      <div class="option-letter">${opt.letter}</div>
+      <div class="option-text">${opt.text}</div>
+    </button>
+  `).join('');
+
+  container.innerHTML = `
+    ${sectionHtml}
+    <div class="question-card">
+      <div class="question-num">QUESTION ${String(index+1).padStart(2,'0')} / 12</div>
+      <div class="question-text">${q.q}</div>
+      <div class="options">${optionsHtml}</div>
+    </div>
+  `;
+
+  // Update progress
+  document.getElementById('progress-fraction').textContent = `${index+1} / 12`;
+  document.getElementById('progress-fill').style.width = `${((index+1)/12)*100}%`;
+
+  // Prev button
+  document.getElementById('btn-prev').style.display = index > 0 ? 'block' : 'none';
+
+  // Next button
+  const btnNext = document.getElementById('btn-next');
+  btnNext.disabled = answers[index] === null;
+  btnNext.textContent = index === 11 ? '查看结果 🐾' : '下一题 →';
+}
+
+function selectOption(qIndex, optIndex) {
+  answers[qIndex] = optIndex;
+  document.querySelectorAll('.option').forEach((el, i) => {
+    el.classList.toggle('selected', i === optIndex);
+  });
+  document.getElementById('btn-next').disabled = false;
+}
+
+function nextQuestion() {
+  if (answers[currentQ] === null) return;
+  if (currentQ === 11) {
+    showResult();
+    return;
+  }
+  currentQ++;
+  renderQuestion(currentQ);
+  window.scrollTo(0, 0);
+}
+
+function prevQuestion() {
+  if (currentQ === 0) return;
+  currentQ--;
+  renderQuestion(currentQ);
+  window.scrollTo(0, 0);
+}
+
+function showResult() {
+  // Tally votes per axis
+  const axisVotes = { power: {}, intimacy: {}, vibe: {}, economy: {} };
+  
+  questions.forEach((q, i) => {
+    if (answers[i] === null) return;
+    const val = q.options[answers[i]].val;
+    const axis = q.axis;
+    axisVotes[axis][val] = (axisVotes[axis][val] || 0) + 1;
+  });
+
+  function dominant(votes) {
+    let best = null, max = 0;
+    for (const [k, v] of Object.entries(votes)) {
+      if (v > max) { max = v; best = k; }
+    }
+    return best;
+  }
+
+  const pw = dominant(axisVotes.power);   // B S F C
+  const im = dominant(axisVotes.intimacy); // O I A U
+  const vi = dominant(axisVotes.vibe);     // S M K T
+  const ec = dominant(axisVotes.economy);  // S P E
+
+  // Overall type: count all selections
+  const allVotes = {};
+  questions.forEach((q, i) => {
+    if (answers[i] === null) return;
+    const val = q.options[answers[i]].val;
+    allVotes[val] = (allVotes[val] || 0) + 1;
+  });
+
+  // Map to result categories
+  const catScore = { B: 0, S: 0, F: 0, C: 0 };
+  const bossKeys = ['B'];
+  const simpKeys = ['S', 'O', 'P'];
+  const fakeKeys = ['F', 'I', 'A', 'E'];
+  const cuteKeys = ['C', 'U', 'T', 'M'];
+
+  for (const [k, v] of Object.entries(allVotes)) {
+    if (bossKeys.includes(k)) catScore.B += v;
+    if (simpKeys.includes(k)) catScore.S += v;
+    if (fakeKeys.includes(k)) catScore.F += v;
+    if (cuteKeys.includes(k)) catScore.C += v;
+  }
+
+  let finalType = 'C';
+  let maxScore = 0;
+  for (const [k, v] of Object.entries(catScore)) {
+    if (v > maxScore) { maxScore = v; finalType = k; }
+  }
+
+  const typeMap = { B: resultTypes.B, S: resultTypes.S, F: resultTypes.F, C: resultTypes.C };
+  const res = typeMap[finalType];
+
+  document.getElementById('result-emoji').textContent = res.emoji;
+  document.getElementById('result-code').textContent = res.code;
+  document.getElementById('result-name').textContent = res.name;
+  document.getElementById('result-sub').textContent = res.sub;
+  document.getElementById('result-desc').textContent = res.desc;
+
+  const tagsEl = document.getElementById('result-tags');
+  tagsEl.innerHTML = res.tags.map(t => `<span class="result-tag"># ${t}</span>`).join('');
+
+  showScreen('result');
+
+  // Animate bars after a short delay
+  setTimeout(() => {
+    document.getElementById('bar-power').style.width = res.scores.power + '%';
+    document.getElementById('bar-intimacy').style.width = res.scores.intimacy + '%';
+    document.getElementById('bar-vibe').style.width = res.scores.vibe + '%';
+    document.getElementById('bar-economy').style.width = res.scores.economy + '%';
+    document.getElementById('val-power').textContent = res.scores.power;
+    document.getElementById('val-intimacy').textContent = res.scores.intimacy;
+    document.getElementById('val-vibe').textContent = res.scores.vibe;
+    document.getElementById('val-economy').textContent = res.scores.economy;
+  }, 300);
+}
+
+function resetQuiz() {
+  currentQ = 0;
+  answers = new Array(12).fill(null);
+  showScreen('cover');
+}
+</script>
+
+</body>
+</html>
