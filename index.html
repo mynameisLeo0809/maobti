@@ -194,8 +194,6 @@ pointer-events: none; z-index: 9999; white-space: nowrap;
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-
 </head>
 <body>
 
@@ -212,7 +210,7 @@ pointer-events: none; z-index: 9999; white-space: nowrap;
     <p class="cover-desc">你以为你在<em>养猫</em>，<br>还是猫在<em>养你</em>？<br><br>12道题，找到你家的<em>真实权力结构</em>。</p>
     <button class="btn-start" onclick="startQuiz()">🐱 开始测试</button>
     <div class="cover-note">共 12 道题 · 约 2 分钟</div>
-    <div class="visit-count">已有 <span id="busuanzi_value_site_uv">--</span> 位铲屎官测过了</div>
+    <div class="visit-count">已有 <span id="finish-count">--</span> 位铲屎官测过了</div>
   </div>
 </div>
 
@@ -432,6 +430,14 @@ function startQuiz() {
   renderQuestion(0);
 }
 
+// 加载时拉取完成人数
+fetch('https://api.countapi.xyz/get/maobti/finishers')
+  .then(r => r.json())
+  .then(d => {
+    const el = document.getElementById('finish-count');
+    if (el && d.value !== null) el.textContent = d.value;
+  }).catch(() => {});
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
@@ -500,6 +506,14 @@ function showResult() {
   for (const [k, v] of Object.entries(catScore)) {
     if (v > maxScore) { maxScore = v; finalType = k; }
   }
+  // 做完才计数
+  fetch('https://api.countapi.xyz/hit/maobti/finishers').catch(() => {});
+  // 同步更新封面数字
+  fetch('https://api.countapi.xyz/get/maobti/finishers')
+    .then(r => r.json())
+    .then(d => { const el = document.getElementById('finish-count'); if (el && d.value) el.textContent = d.value; })
+    .catch(() => {});
+
   const r = RESULTS[finalType];
   const tagsHtml = r.tags.map(t => `<span class="r-tag"># ${t}</span>`).join('');
   document.getElementById('result-card').innerHTML = `
