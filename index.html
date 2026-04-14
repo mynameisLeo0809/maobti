@@ -128,21 +128,15 @@ border-radius: 26px 26px 0 0;
 .card-fake .chip { background:rgba(20,140,100,0.1); color:#148c64; border:1px solid rgba(20,140,100,0.25); }
 .card-cute .chip { background:rgba(180,130,0,0.1); color:#a07800; border:1px solid rgba(180,130,0,0.25); }
 
-.title-row { display:flex; align-items:center; gap:0; margin-bottom:6px; line-height:1; flex-wrap:wrap; }
-.t-en { font-family:‘Space Mono’,monospace; font-size:30px; font-weight:700; letter-spacing:0; line-height:1; }
-.t-sep { font-size:26px; font-weight:300; opacity:0.25; margin:0 10px; line-height:1; font-family:‘Space Mono’,monospace; }
-.t-cn { font-family:‘Noto Serif SC’,serif; font-size:30px; font-weight:900; line-height:1; }
+.title-row { display:flex; align-items:center; margin-bottom:8px; line-height:1; }
+.t-en { font-family:‘Space Mono’,monospace; font-size:42px; font-weight:700; letter-spacing:2px; line-height:1; }
 
-.card-boss .t-en,.card-boss .t-cn { color:#2e6fcc; }
-.card-boss .t-sep { color:#2e6fcc; }
-.card-simp .t-en,.card-simp .t-cn { color:#8030b8; }
-.card-simp .t-sep { color:#8030b8; }
-.card-fake .t-en,.card-fake .t-cn { color:#108858; }
-.card-fake .t-sep { color:#108858; }
-.card-cute .t-en,.card-cute .t-cn { color:#987000; }
-.card-cute .t-sep { color:#987000; }
+.card-boss .t-en { color:#2e6fcc; }
+.card-simp .t-en { color:#8030b8; }
+.card-fake .t-en { color:#108858; }
+.card-cute .t-en { color:#987000; }
 
-.r-sub { font-size:12px; color:rgba(0,0,0,0.38); margin-bottom:18px; letter-spacing:0.5px; }
+.r-sub { font-size:18px; font-weight:700; color:rgba(0,0,0,0.55); margin-bottom:18px; letter-spacing:1px; }
 .illus { width:100%; height:164px; margin-bottom:16px; }
 .illus svg { width:100%; height:100%; overflow:visible; }
 .r-tagline { font-family:‘Space Mono’,monospace; font-size:10px; letter-spacing:2px; color:rgba(0,0,0,0.3); text-align:center; padding-top:13px; border-top:1px solid rgba(0,0,0,0.08); margin-bottom:14px; }
@@ -243,8 +237,8 @@ const questions = [
 
 const RESULTS = {
   B: {
-    cssClass:"card-boss", typeCode:"B.O.S.S.", typeCn:"猫是大王",
-    sub:"你住在它的领地里交房租",
+    cssClass:"card-boss", typeCode:"B.O.S.S.", typeCn:"猫是王",
+    sub:"猫是王",
     tagline:"你的唯一职责是准时开罐 · 适时铲屎",
     desc:"你的家里，猫是神，你是祭品。它不住在你家，是你住在它的领地里交房租。每一道门缝、每一块床垫、每一片阳光都属于它，你的唯一价值是准时开罐、适时铲屎，以及在它需要暖手包时提供体温。但……你甘之如饴，对吧？",
     tags:["家里地位最低","猫是立法者","我是执行器","甘心臣服"],
@@ -284,7 +278,7 @@ const RESULTS = {
   },
   S: {
     cssClass:"card-simp", typeCode:"S.I.M.P.", typeCn:"你是M",
-    sub:"穷且卑微，但乐在其中",
+    sub:"你是M",
     tagline:"它背对你 · 你眉开眼笑",
     desc:"你是典型的单向奔赴——你付出所有，它给你薄情。你对它好到令人心疼，省下来的钱全买了进口粮，但它回馈你的只有背影和偶尔翻肚子时的「营业假笑」。这种感情叫做：穷且卑微，但乐在其中。",
     tags:["单向深情","钱包已陷落","感情还在努力","苦中作乐"],
@@ -318,7 +312,7 @@ const RESULTS = {
   },
   F: {
     cssClass:"card-fake", typeCode:"F.A.K.E.", typeCn:"假猫假人",
-    sub:"朋友圈秀恩爱，现实陌生人",
+    sub:"假猫假人",
     tagline:"同住一屋檐 · 仅此而已",
     desc:"你们是住在同一屋檐下的高级陌生人。现实里互不打扰，朋友圈里岁月静好。它是你「精致生活」滤镜的最佳道具：一张慵懒的猫咪照片，点赞过百。但你们的灵魂……从未真正接触过。",
     tags:["精神分离","滤镜关系","社媒体面","各自为政"],
@@ -349,8 +343,8 @@ const RESULTS = {
       </g>`
   },
   C: {
-    cssClass:"card-cute", typeCode:"C.U.T.E.", typeCn:"人猫相爱型",
-    sub:"上辈子拯救了银河系",
+    cssClass:"card-cute", typeCode:"C.U.T.E.", typeCn:"人猫相爱",
+    sub:"人猫相爱",
     tagline:"灵魂双向奔赴 · 神仙关系",
     desc:"你上辈子可能拯救了银河系，才换来这种神仙关系。它懂你，你懂它，家里有规矩但不压迫，有温柔但不溺爱。它在你难过时靠过来，你在它生病时彻夜不眠。这不是养猫，这是灵魂的双向奔赴。",
     tags:["双向深情","灵魂伴侣","默契满分","羡煞旁人"],
@@ -473,10 +467,8 @@ function showResult() {
       <span class="chip">人猫关系测评结果</span>
       <div class="title-row">
         <span class="t-en">${r.typeCode}</span>
-        <span class="t-sep">/</span>
-        <span class="t-cn">${r.typeCn}</span>
       </div>
-      <div class="r-sub">${r.sub}</div>
+      <div class="r-sub">${r.typeCn}</div>
       <div class="illus"><svg viewBox="0 0 320 164">${r.svg}</svg></div>
       <div class="r-tagline">${r.tagline}</div>
       <div class="r-desc">${r.desc}<div class="r-tags">${tagsHtml}</div></div>
