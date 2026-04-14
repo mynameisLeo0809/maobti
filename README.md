@@ -1,2 +1,496 @@
-# maobti
-maobti
+
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MaoBti — 人猫关系身份定位测试</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0c0a;
+    --card: #2a2520;
+    --accent: #e8b86d;
+    --accent2: #d4845a;
+    --text: #f0ebe3;
+    --muted: #9a9188;
+    --border: #3d3730;
+    --option-bg: #201d19;
+    --option-text: #d8d0c4;
+    --selected-bg: #3a2e1a;
+    --selected-border: #e8b86d;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Serif SC', serif; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1000; opacity: 0.5;
+  }
+
+/* ── screen system ── */
+.screen { display: none; position: fixed; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screen.active { display: block; }
+.inner { max-width: 480px; margin: 0 auto; padding: 0 16px 60px; }
+
+/* ══════════════════════════════
+COVER
+══════════════════════════════ */
+#cover .inner {
+min-height: 100vh; display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+text-align: center; padding: 40px 16px;
+}
+.cover-paw { font-size: 80px; animation: float 3s ease-in-out infinite; filter: drop-shadow(0 0 30px rgba(232,184,109,0.4)); margin-bottom: 24px; }
+@keyframes float { 0%,100%{transform:translateY(0) rotate(-5deg)} 50%{transform:translateY(-12px) rotate(5deg)} }
+.cover-badge { font-family:‘Space Mono’,monospace; font-size:11px; letter-spacing:4px; color:var(–accent); border:1px solid var(–accent); padding:5px 14px; border-radius:100px; margin-bottom:20px; opacity:0.8; }
+.cover-title { font-size:clamp(52px,16vw,80px); font-weight:900; line-height:0.95; letter-spacing:-2px; background:linear-gradient(135deg,var(–accent) 0%,var(–accent2) 50%,#f0ebe3 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; }
+.cover-subtitle { font-size:14px; color:var(–muted); letter-spacing:2px; margin-bottom:32px; font-family:‘Space Mono’,monospace; }
+.cover-desc { font-size:15px; line-height:1.8; color:#c4b9aa; max-width:380px; margin-bottom:44px; }
+.cover-desc em { color:var(–accent); font-style:normal; }
+.btn-start {
+background:linear-gradient(180deg,#f0c47a,#d4845a); color:#1a0f00; border:none;
+border-bottom:5px solid #a85a2a; border-right:2px solid #b86830;
+padding:16px 48px; border-radius:100px; font-size:16px; font-weight:700;
+font-family:‘Noto Serif SC’,serif; cursor:pointer; letter-spacing:2px;
+box-shadow:0 8px 24px rgba(232,184,109,0.35),0 2px 0 rgba(255,255,255,0.15) inset;
+transition:all 0.12s ease; position:relative; top:0;
+}
+.btn-start:hover { top:-2px; box-shadow:0 12px 28px rgba(232,184,109,0.45),0 2px 0 rgba(255,255,255,0.2) inset; }
+.btn-start:active { top:4px; border-bottom-width:1px; box-shadow:0 3px 10px rgba(232,184,109,0.2); }
+.cover-note { margin-top:24px; font-size:12px; color:var(–muted); font-family:‘Space Mono’,monospace; }
+
+/* ══════════════════════════════
+QUIZ
+══════════════════════════════ */
+#quiz .inner { padding-top:0; }
+.quiz-header { position:sticky; top:0; z-index:100; background:linear-gradient(to bottom,var(–bg) 85%,transparent); padding:16px 0 10px; }
+.progress-info { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.progress-label { font-family:‘Space Mono’,monospace; font-size:11px; color:var(–muted); letter-spacing:1px; }
+.progress-fraction { font-family:‘Space Mono’,monospace; font-size:12px; color:var(–accent); font-weight:700; }
+.progress-bar { height:3px; background:var(–border); border-radius:10px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(–accent),var(–accent2)); border-radius:10px; transition:width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.section-tag { display:inline-flex; align-items:center; gap:6px; font-family:‘Space Mono’,monospace; font-size:10px; letter-spacing:2px; color:var(–accent); background:rgba(232,184,109,0.1); border:1px solid rgba(232,184,109,0.25); padding:5px 14px; border-radius:100px; margin:20px 0 12px; text-transform:uppercase; }
+.question-card { background:var(–card); border:1px solid var(–border); border-radius:var(–radius); padding:22px 20px; margin-bottom:14px; animation:slideUp 0.35s cubic-bezier(0.4,0,0.2,1); }
+@keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.question-num { font-family:‘Space Mono’,monospace; font-size:10px; color:var(–muted); letter-spacing:2px; margin-bottom:10px; }
+.question-text { font-size:16px; line-height:1.7; font-weight:700; color:var(–text); margin-bottom:18px; }
+.options { display:flex; flex-direction:column; gap:9px; }
+.option { display:flex; align-items:flex-start; gap:12px; padding:13px 15px; background:var(–option-bg); border:1.5px solid var(–border); border-radius:10px; cursor:pointer; transition:all 0.18s; text-align:left; width:100%; }
+.option:hover { background:#2c2820; border-color:rgba(232,184,109,0.5); transform:translateX(3px); }
+.option.selected { background:var(–selected-bg); border-color:var(–selected-border); box-shadow:0 0 0 1px rgba(232,184,109,0.2); }
+.option-letter { width:28px; height:28px; border-radius:50%; border:1.5px solid #5a5248; display:flex; align-items:center; justify-content:center; font-family:‘Space Mono’,monospace; font-size:11px; color:#b0a898; flex-shrink:0; transition:all 0.18s; background:#181512; }
+.option.selected .option-letter { background:var(–accent); border-color:var(–accent); color:#1a0f00; font-weight:700; }
+.option-text { font-size:14px; line-height:1.7; color:var(–option-text); transition:color 0.18s; padding-top:2px; }
+.option.selected .option-text { color:#f5ede0; }
+.quiz-nav { display:flex; gap:12px; margin-top:20px; padding-bottom:20px; }
+.btn-nav { flex:1; padding:14px; border-radius:10px; font-size:14px; font-family:‘Noto Serif SC’,serif; font-weight:700; cursor:pointer; transition:all 0.12s ease; letter-spacing:1px; position:relative; top:0; }
+.btn-prev { background:var(–card); border:1.5px solid var(–border); border-bottom:4px solid #1a1714; color:var(–muted); }
+.btn-prev:hover { border-color:var(–muted); color:var(–text); top:-1px; }
+.btn-prev:active { top:3px; border-bottom-width:1px; }
+.btn-next { background:linear-gradient(180deg,#f0c47a,#d4845a); color:#1a0f00; border:none; border-bottom:5px solid #a85a2a; border-right:2px solid #b86830; box-shadow:0 6px 20px rgba(232,184,109,0.3),0 1px 0 rgba(255,255,255,0.15) inset; }
+.btn-next:hover:not(:disabled) { top:-2px; box-shadow:0 8px 24px rgba(232,184,109,0.4); }
+.btn-next:active:not(:disabled) { top:4px; border-bottom-width:1px; }
+.btn-next:disabled { background:linear-gradient(180deg,#4a4238,#3a3028); color:#6a6058; border-bottom-color:#2a2218; border-right-color:#2a2218; box-shadow:none; cursor:not-allowed; }
+
+/* ══════════════════════════════
+RESULT
+══════════════════════════════ */
+#result .inner { padding-top: 24px; }
+
+.result-card {
+width: 100%; border-radius: 26px;
+padding: 26px 22px 22px;
+position: relative; overflow: hidden;
+box-shadow: 0 16px 48px rgba(0,0,0,0.18), 0 2px 0 rgba(255,255,255,0.5) inset;
+animation: slideUp 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.result-card::after {
+content: ‘’; position: absolute;
+top: 0; left: 0; right: 0; height: 4px;
+border-radius: 26px 26px 0 0;
+}
+.card-boss { background:#f5f1eb; border:1.5px solid #e0d8ce; }
+.card-boss::after { background:linear-gradient(90deg,#5aaaf0,#2e6fcc); }
+.card-simp { background:#f5f1eb; border:1.5px solid #e0d8ce; }
+.card-simp::after { background:linear-gradient(90deg,#ff70b8,#c07aff); }
+.card-fake { background:#f5f1eb; border:1.5px solid #e0d8ce; }
+.card-fake::after { background:linear-gradient(90deg,#34a8a0,#44c880); }
+.card-cute { background:#f5f1eb; border:1.5px solid #e0d8ce; }
+.card-cute::after { background:linear-gradient(90deg,#ff9020,#ffd020); }
+
+.chip { display:inline-block; font-family:‘Space Mono’,monospace; font-size:9px; letter-spacing:3px; padding:3px 11px; border-radius:100px; margin-bottom:16px; text-transform:uppercase; }
+.card-boss .chip { background:rgba(46,111,204,0.1); color:#2e6fcc; border:1px solid rgba(46,111,204,0.25); }
+.card-simp .chip { background:rgba(140,60,200,0.1); color:#8830c8; border:1px solid rgba(140,60,200,0.25); }
+.card-fake .chip { background:rgba(20,140,100,0.1); color:#148c64; border:1px solid rgba(20,140,100,0.25); }
+.card-cute .chip { background:rgba(180,130,0,0.1); color:#a07800; border:1px solid rgba(180,130,0,0.25); }
+
+.title-row { display:flex; align-items:center; gap:0; margin-bottom:6px; line-height:1; flex-wrap:wrap; }
+.t-en { font-family:‘Space Mono’,monospace; font-size:30px; font-weight:700; letter-spacing:0; line-height:1; }
+.t-sep { font-size:26px; font-weight:300; opacity:0.25; margin:0 10px; line-height:1; font-family:‘Space Mono’,monospace; }
+.t-cn { font-family:‘Noto Serif SC’,serif; font-size:30px; font-weight:900; line-height:1; }
+
+.card-boss .t-en,.card-boss .t-cn { color:#2e6fcc; }
+.card-boss .t-sep { color:#2e6fcc; }
+.card-simp .t-en,.card-simp .t-cn { color:#8030b8; }
+.card-simp .t-sep { color:#8030b8; }
+.card-fake .t-en,.card-fake .t-cn { color:#108858; }
+.card-fake .t-sep { color:#108858; }
+.card-cute .t-en,.card-cute .t-cn { color:#987000; }
+.card-cute .t-sep { color:#987000; }
+
+.r-sub { font-size:12px; color:rgba(0,0,0,0.38); margin-bottom:18px; letter-spacing:0.5px; }
+.illus { width:100%; height:164px; margin-bottom:16px; }
+.illus svg { width:100%; height:100%; overflow:visible; }
+.r-tagline { font-family:‘Space Mono’,monospace; font-size:10px; letter-spacing:2px; color:rgba(0,0,0,0.3); text-align:center; padding-top:13px; border-top:1px solid rgba(0,0,0,0.08); margin-bottom:14px; }
+
+.r-desc { background:rgba(0,0,0,0.04); border:1px solid rgba(0,0,0,0.07); border-radius:12px; padding:14px 16px; margin-bottom:14px; font-size:13px; line-height:1.9; color:rgba(0,0,0,0.55); }
+.r-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.r-tag { font-family:‘Space Mono’,monospace; font-size:10px; padding:3px 10px; border-radius:100px; border:1px solid rgba(0,0,0,0.1); color:rgba(0,0,0,0.35); }
+
+.btn-retry { display:block; width:100%; padding:13px 0; border-radius:12px; font-family:‘Space Mono’,monospace; font-size:12px; font-weight:700; letter-spacing:4px; text-align:center; cursor:pointer; border:none; outline:none; position:relative; top:0; transition:top 0.10s ease,box-shadow 0.10s ease; }
+.btn-retry:hover { top:-2px; }
+.btn-retry:active { top:4px; border-bottom-width:1px !important; }
+
+.card-boss .btn-retry { background:linear-gradient(180deg,#5aaaf0,#2e6fcc); color:#fff; border-bottom:5px solid #1a4a99; box-shadow:0 6px 22px rgba(46,111,204,0.45),0 1px 0 rgba(180,220,255,0.4) inset; }
+.card-boss .btn-retry:hover { box-shadow:0 10px 28px rgba(46,111,204,0.58),0 1px 0 rgba(180,220,255,0.4) inset; }
+.card-simp .btn-retry { background:linear-gradient(180deg,#d090ff,#9038cc); color:#180828; border-bottom:5px solid #501888; box-shadow:0 6px 22px rgba(144,56,204,0.45),0 1px 0 rgba(224,180,255,0.4) inset; }
+.card-simp .btn-retry:hover { box-shadow:0 10px 28px rgba(144,56,204,0.58); }
+.card-fake .btn-retry { background:linear-gradient(180deg,#50d090,#208850); color:#041410; border-bottom:5px solid #105828; box-shadow:0 6px 22px rgba(32,136,80,0.45),0 1px 0 rgba(160,248,200,0.4) inset; }
+.card-fake .btn-retry:hover { box-shadow:0 10px 28px rgba(32,136,80,0.58); }
+.card-cute .btn-retry { background:linear-gradient(180deg,#ffe040,#e08808); color:#1a0e00; border-bottom:5px solid #985005; box-shadow:0 6px 22px rgba(224,136,8,0.45),0 1px 0 rgba(255,240,160,0.4) inset; }
+.card-cute .btn-retry:hover { box-shadow:0 10px 28px rgba(224,136,8,0.58); }
+</style>
+
+</head>
+<body>
+
+<!-- ══ COVER ══ -->
+
+<div id="cover" class="screen active">
+  <div class="inner">
+    <div class="cover-paw">🐾</div>
+    <div class="cover-badge">人猫关系测评系统 v1.0</div>
+    <div class="cover-title">MaoBti</div>
+    <div class="cover-subtitle">THE CAT PERSONALITY INDEX</div>
+    <p class="cover-desc">你以为你在<em>养猫</em>，<br>还是猫在<em>养你</em>？<br><br>12道题，找到你家的<em>真实权力结构</em>。</p>
+    <button class="btn-start" onclick="startQuiz()">🐱 开始测试</button>
+    <div class="cover-note">共 12 道题 · 约 2 分钟</div>
+  </div>
+</div>
+
+<!-- ══ QUIZ ══ -->
+
+<div id="quiz" class="screen">
+  <div class="inner">
+    <div class="quiz-header">
+      <div class="progress-info">
+        <span class="progress-label">MAOBTI ASSESSMENT</span>
+        <span class="progress-fraction" id="progress-fraction">1 / 12</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:8.33%"></div></div>
+    </div>
+    <div id="questions-container"></div>
+    <div class="quiz-nav">
+      <button class="btn-nav btn-prev" id="btn-prev" onclick="prevQuestion()" style="display:none">← 上一题</button>
+      <button class="btn-nav btn-next" id="btn-next" onclick="nextQuestion()" disabled>下一题 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+
+<div id="result" class="screen">
+  <div class="inner">
+    <div id="result-card"></div>
+  </div>
+</div>
+
+<script>
+const questions = [
+  { section:"第一部分：权力轴 (Power)",sectionIcon:"👑",sectionDesc:"谁是真正的主人？",axis:"power",
+    q:"1. 睡觉时，关于「领土高度」的分配：",
+    options:[{letter:"A",text:"猫睡高处或床中心，我蜷缩在边缘，被子被压住了也不敢用力拽。",val:"B"},{letter:"B",text:"我睡我的，猫睡它的，它如果挤到我，我会把它挪开。",val:"S"},{letter:"C",text:"各睡各的房间或地盘，互不干扰，像两个合租室友。",val:"F"},{letter:"D",text:"拥抱而眠，它会根据我的姿势调整位置，彼此都很舒服。",val:"C"}]},
+  { axis:"power",q:"2. 当你想关上某扇门（如浴室或卧室）时：",
+    options:[{letter:"A",text:"只要关门它就疯狂挠门或惨叫，我只能被迫打开，「全屋自由」是它的底线。",val:"B"},{letter:"B",text:"关门后它会等在门口，我一出来它就骂骂咧咧，但我还是会关。",val:"S"},{letter:"C",text:"关不关门它都无所谓，它根本不在意你在哪个房间。",val:"F"},{letter:"D",text:"它知道关门意味着你在忙，会安静地在门外做自己的事。",val:"C"}]},
+  { axis:"power",q:"3. 关于「家庭规则」的制定：",
+    options:[{letter:"A",text:"它想什么时候吃、在哪睡、翻哪个垃圾桶，全凭它心情，我只能跟在后面收拾。",val:"B"},{letter:"B",text:"我试图建立规则（如不准上桌），虽然它总犯，但我从未放弃说教。",val:"S"},{letter:"C",text:"没有规则，它玩它的，我玩我的，只要不把房子烧了就行。",val:"F"},{letter:"D",text:"有默契的规则，它知道哪些动作会让你不开心，通常会点到为止。",val:"C"}]},
+  { section:"第二部分：情感轴 (Intimacy)",sectionIcon:"💛",sectionDesc:"你们的爱是单向还是双向？",axis:"intimacy",
+    q:"4. 当你下班回家推开门的那一刻：",
+    options:[{letter:"A",text:"我疯狂寻找它的身影并试图强吻，它眼神里写满了「这人类怎么又回来了」。",val:"O"},{letter:"B",text:"没看到它，它甚至懒得从窝里抬一下头。",val:"I"},{letter:"C",text:"它在远处冷冷地看着你，确认你没带外人回来后继续洗脸。",val:"A"},{letter:"D",text:"它会小跑过来迎接，蹭蹭你的腿，发出一声温柔的问候。",val:"U"}]},
+  { axis:"intimacy",q:"5. 关于「亲密互动」的频率：",
+    options:[{letter:"A",text:"我一天喊它八百遍名字，它能回我一次头都算我赢。",val:"O"},{letter:"B",text:"我在自言自语，它在神游太空，我们之间有物理连接但没灵魂信号。",val:"I"},{letter:"C",text:"只有在它需要罐头或被窝时，才会展示那虚假的「营业式亲热」。",val:"A"},{letter:"D",text:"我心情不好时，它会主动靠过来，这种精神支持是双向的。",val:"U"}]},
+  { axis:"intimacy",q:"6. 当你情绪异动时（生病 / down / 崩溃）：",
+    options:[{letter:"A",text:"它的第一反应是：这人类怎么了，我的自动喂食器还能准时工作吗？",val:"O"},{letter:"B",text:"它会吓一跳，然后迅速逃离现场，找个安静的地方躲起来。",val:"I"},{letter:"C",text:"它会歪头看你三秒钟，然后开始舔自己的后腿。",val:"A"},{letter:"D",text:"它会走过来蹭蹭你，甚至用头顶一顶你表示安慰。",val:"U"}]},
+  { section:"第三部分：行为轴 (Vibe)",sectionIcon:"⚡",sectionDesc:"家里的氛围是安静还是活泼？",axis:"vibe",
+    q:"7. 关于家具和装修的「战损」情况：",
+    options:[{letter:"A",text:"满目疮痍。沙发是它的抓板，窗帘是它的攀岩墙，桌面没有易碎品。",val:"S"},{letter:"B",text:"基本完整。它偶尔会犯错，但大多数时候是个安静的糯米糍。",val:"M"},{letter:"C",text:"行为迷惑。它不拆家，但经常在半夜盯着天花板的虚空发出低吼。",val:"K"},{letter:"D",text:"优雅得体。它甚至懂得避开你新买的乐高模型。",val:"T"}]},
+  { axis:"vibe",q:"8. 凌晨三点的「跑酷时间」：",
+    options:[{letter:"A",text:"它是暗夜里的特种兵，你的肚子和头是它借力起跳的踏板。",val:"S"},{letter:"B",text:"它像个秤砣一样沉在被窝里，除非地球爆炸，否则绝不起床。",val:"M"},{letter:"C",text:"它在客厅玩那种带球的转盘，声音诡异且富有节奏感。",val:"K"},{letter:"D",text:"它和你保持同样的生物钟，你睡它也睡，你起它也起。",val:"T"}]},
+  { axis:"vibe",q:"9. 当你拿出指甲剪或洗澡盆时：",
+    options:[{letter:"A",text:"现场立刻变成凶案现场，它的尖叫声能惊动整栋楼。",val:"S"},{letter:"B",text:"认命般地摊平，虽然眼神里全是幽怨，但不敢反抗。",val:"M"},{letter:"C",text:"表现出极度的智商压制，总能找到你够不着的死角钻进去。",val:"K"},{letter:"D",text:"非常配合，虽然不喜欢，但因为它信任你，所以愿意忍受。",val:"T"}]},
+  { section:"第四部分：财务轴 (Economy)",sectionIcon:"💸",sectionDesc:"你是氪金还是精算？",axis:"economy",
+    q:"10. 买猫用品时的心理活动：",
+    options:[{letter:"A",text:"只要是它可能喜欢的，哪怕这个月吃土，我也会刷卡买最新款。",val:"S"},{letter:"B",text:"我省吃俭用是为了它能吃上进口罐头，这种牺牲感让我充实。",val:"P"},{letter:"C",text:"我买的很贵，但主要因为我想在朋友圈展示某种「精英生活」。",val:"E"},{letter:"D",text:"追求极致性价比，科学配方，不交智商税，省钱又省心。",val:"E"}]},
+  { axis:"economy",q:"11. 关于「突发开销」（如生病或弄坏东西）：",
+    options:[{letter:"A",text:"它就是个行走的人民币碎纸机，我辛苦一年，工资全进了宠物医院。",val:"S"},{letter:"B",text:"它的医疗金是我的第一储备，我甚至没给自己买保险，但给它买了。",val:"P"},{letter:"C",text:"虽然平时不怎么交流，但它一旦生病，那账单厚度能让你当场破产。",val:"E"},{letter:"D",text:"它是那种「体质型报恩猫」，除了疫苗和驱虫，基本不让你花冤枉钱。",val:"E"}]},
+  { axis:"economy",q:"12. 关于自我生活质量的影响：",
+    options:[{letter:"A",text:"我的衣服全是猫毛，家里一股猫砂味，但我对此甘之如饴。",val:"S"},{letter:"B",text:"我已经好几年没出去旅游了，因为怕它一个人在家受委屈。",val:"P"},{letter:"C",text:"它是家里最昂贵的「软装」，它负责美，我负责交房租。",val:"E"},{letter:"D",text:"养猫提升了我的生活质量，我们互相成就，没有谁拖累谁。",val:"E"}]},
+];
+
+const RESULTS = {
+  B: {
+    cssClass:"card-boss", typeCode:"B.O.S.S.", typeCn:"猫是大王",
+    sub:"你住在它的领地里交房租",
+    tagline:"你的唯一职责是准时开罐 · 适时铲屎",
+    desc:"你的家里，猫是神，你是祭品。它不住在你家，是你住在它的领地里交房租。每一道门缝、每一块床垫、每一片阳光都属于它，你的唯一价值是准时开罐、适时铲屎，以及在它需要暖手包时提供体温。但……你甘之如饴，对吧？",
+    tags:["家里地位最低","猫是立法者","我是执行器","甘心臣服"],
+    svg: `<line x1="10" y1="156" x2="310" y2="156" stroke="rgba(46,111,204,0.1)" stroke-width="1"/>
+      <g transform="translate(48,6)">
+        <ellipse cx="60" cy="108" rx="48" ry="37" fill="#c47028"/>
+        <circle cx="60" cy="62" r="39" fill="#d68038"/>
+        <polygon points="22,44 10,16 38,38" fill="#c47028"/><polygon points="98,44 110,16 82,38" fill="#c47028"/>
+        <polygon points="24,42 14,20 36,36" fill="#e8a058"/><polygon points="96,42 106,20 84,36" fill="#e8a058"/>
+        <ellipse cx="44" cy="58" rx="7" ry="9" fill="#180600"/><ellipse cx="76" cy="58" rx="7" ry="9" fill="#180600"/>
+        <circle cx="45" cy="55" r="2.5" fill="rgba(255,255,255,0.9)"/><circle cx="77" cy="55" r="2.5" fill="rgba(255,255,255,0.9)"/>
+        <ellipse cx="60" cy="73" rx="4" ry="3" fill="#de5838"/>
+        <path d="M55,77 Q60,82 65,77" stroke="#b83818" stroke-width="1.5" fill="none"/>
+        <line x1="6" y1="70" x2="49" y2="73" stroke="rgba(255,255,255,0.5)" stroke-width="1.1"/>
+        <line x1="6" y1="76" x2="49" y2="75" stroke="rgba(255,255,255,0.5)" stroke-width="1.1"/>
+        <line x1="71" y1="73" x2="114" y2="70" stroke="rgba(255,255,255,0.5)" stroke-width="1.1"/>
+        <line x1="71" y1="75" x2="114" y2="76" stroke="rgba(255,255,255,0.5)" stroke-width="1.1"/>
+        <path d="M108,116 Q138,94 126,134 Q114,152 98,140" stroke="#c47028" stroke-width="12" fill="none" stroke-linecap="round"/>
+        <rect x="26" y="130" width="19" height="22" rx="9" fill="#c47028"/><rect x="75" y="130" width="19" height="22" rx="9" fill="#c47028"/>
+        <polygon points="26,20 40,0 60,12 80,0 94,20 88,30 32,30" fill="#ffd700"/>
+        <circle cx="40" cy="8" r="4" fill="#ff3333"/><circle cx="60" cy="4" r="4" fill="#3366ff"/><circle cx="80" cy="8" r="4" fill="#33cc44"/>
+      </g>
+      <g transform="translate(202,88)">
+        <rect x="11" y="35" width="31" height="37" rx="7" fill="#785030"/>
+        <circle cx="27" cy="19" r="18" fill="#d4a070"/>
+        <ellipse cx="27" cy="7" rx="18" ry="9" fill="#382000"/>
+        <ellipse cx="20" cy="18" rx="4" ry="4.5" fill="#180800"/><ellipse cx="34" cy="18" rx="4" ry="4.5" fill="#180800"/>
+        <path d="M21,27 Q27,24 33,27" stroke="#884020" stroke-width="1.5" fill="none"/>
+        <rect x="-5" y="44" width="11" height="22" rx="5" fill="#d4a070"/>
+        <rect x="47" y="39" width="11" height="24" rx="5" fill="#d4a070"/>
+        <rect x="13" y="70" width="12" height="26" rx="6" fill="#483020"/><rect x="27" y="70" width="12" height="26" rx="6" fill="#483020"/>
+        <rect x="41" y="42" width="22" height="16" rx="3" fill="#b8b8b8"/><rect x="41" y="39" width="22" height="6" rx="2" fill="#989898"/>
+        <text x="52" y="53" font-size="6.5" fill="#444" text-anchor="middle" font-family="serif">罐头</text>
+        <ellipse cx="3" cy="10" rx="3.5" ry="5.5" fill="#4488ff" opacity="0.7" transform="rotate(-18,3,10)"/>
+        <ellipse cx="12" cy="4" rx="2.5" ry="4" fill="#4488ff" opacity="0.5" transform="rotate(-10,12,4)"/>
+      </g>`
+  },
+  S: {
+    cssClass:"card-simp", typeCode:"S.I.M.P.", typeCn:"你是M",
+    sub:"穷且卑微，但乐在其中",
+    tagline:"它背对你 · 你眉开眼笑",
+    desc:"你是典型的单向奔赴——你付出所有，它给你薄情。你对它好到令人心疼，省下来的钱全买了进口粮，但它回馈你的只有背影和偶尔翻肚子时的「营业假笑」。这种感情叫做：穷且卑微，但乐在其中。",
+    tags:["单向深情","钱包已陷落","感情还在努力","苦中作乐"],
+    svg: `<line x1="10" y1="156" x2="310" y2="156" stroke="rgba(192,122,255,0.1)" stroke-width="1"/>
+      <g transform="translate(40,2)">
+        <ellipse cx="104" cy="130" rx="92" ry="38" fill="#8850b8"/>
+        <circle cx="104" cy="76" r="54" fill="#9860c8"/>
+        <polygon points="56,58 38,24 72,52" fill="#8850b8"/><polygon points="152,58 170,24 136,52" fill="#8850b8"/>
+        <polygon points="58,56 42,28 68,50" fill="#be90e8"/><polygon points="150,56 166,28 140,50" fill="#be90e8"/>
+        <path d="M68,74 Q86,63 104,74" stroke="#200830" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M104,74 Q122,63 140,74" stroke="#200830" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="104" cy="91" rx="6" ry="4.5" fill="#ff78a8"/>
+        <line x1="32" y1="87" x2="92" y2="89" stroke="rgba(255,255,255,0.4)" stroke-width="1.3"/>
+        <line x1="32" y1="95" x2="92" y2="93" stroke="rgba(255,255,255,0.4)" stroke-width="1.3"/>
+        <line x1="116" y1="89" x2="176" y2="87" stroke="rgba(255,255,255,0.4)" stroke-width="1.3"/>
+        <line x1="116" y1="93" x2="176" y2="95" stroke="rgba(255,255,255,0.4)" stroke-width="1.3"/>
+        <ellipse cx="34" cy="150" rx="26" ry="14" fill="#8850b8"/><ellipse cx="174" cy="150" rx="26" ry="14" fill="#8850b8"/>
+        <path d="M196,130 Q226,104 212,152 Q200,172 182,158" stroke="#8850b8" stroke-width="15" fill="none" stroke-linecap="round"/>
+        <text x="70" y="80" font-size="20">😏</text>
+      </g>
+      <g transform="translate(240,102)">
+        <rect x="7" y="45" width="12" height="24" rx="6" fill="#382840"/><rect x="23" y="45" width="12" height="24" rx="6" fill="#382840"/>
+        <rect x="3" y="19" width="36" height="28" rx="8" fill="#6830a0"/>
+        <circle cx="21" cy="9" r="15" fill="#d4a070"/>
+        <ellipse cx="21" cy="1" rx="15" ry="7" fill="#180e28"/>
+        <text x="9" y="14" font-size="13">✨</text>
+        <rect x="-10" y="21" width="10" height="20" rx="5" fill="#d4a070" transform="rotate(-38,-10,21)"/>
+        <rect x="40" y="21" width="10" height="20" rx="5" fill="#d4a070" transform="rotate(38,50,21)"/>
+        <text x="44" y="5" font-size="17" opacity="0.85">💕</text>
+      </g>`
+  },
+  F: {
+    cssClass:"card-fake", typeCode:"F.A.K.E.", typeCn:"假猫假人",
+    sub:"朋友圈秀恩爱，现实陌生人",
+    tagline:"同住一屋檐 · 仅此而已",
+    desc:"你们是住在同一屋檐下的高级陌生人。现实里互不打扰，朋友圈里岁月静好。它是你「精致生活」滤镜的最佳道具：一张慵懒的猫咪照片，点赞过百。但你们的灵魂……从未真正接触过。",
+    tags:["精神分离","滤镜关系","社媒体面","各自为政"],
+    svg: `<line x1="10" y1="156" x2="310" y2="156" stroke="rgba(68,200,128,0.08)" stroke-width="1"/>
+      <g transform="translate(22,50)">
+        <rect x="9" y="66" width="15" height="36" rx="7" fill="#1c3028"/><rect x="28" y="66" width="15" height="36" rx="7" fill="#1c3028"/>
+        <rect x="3" y="26" width="50" height="42" rx="10" fill="#244030"/>
+        <circle cx="28" cy="13" r="19" fill="#d4a070"/>
+        <ellipse cx="28" cy="2" rx="19" ry="9" fill="#0c1610"/>
+        <ellipse cx="20" cy="12" rx="4.5" ry="5" fill="#181600"/><ellipse cx="36" cy="12" rx="4.5" ry="5" fill="#181600"/>
+        <rect x="43" y="32" width="18" height="28" rx="4" fill="#080818"/>
+        <rect x="45" y="34" width="14" height="20" rx="2.5" fill="#1a44cc" opacity="0.85"/>
+        <text x="52" y="47" font-size="9" fill="white" text-anchor="middle">📱</text>
+        <rect x="47" y="28" width="13" height="28" rx="6" fill="#d4a070"/>
+        <rect x="-7" y="30" width="13" height="26" rx="6" fill="#d4a070"/>
+      </g>
+      <text x="160" y="112" font-size="26" fill="rgba(0,0,0,0.06)" text-anchor="middle" font-family="monospace">···</text>
+      <g transform="translate(188,52)">
+        <ellipse cx="54" cy="98" rx="46" ry="29" fill="#164030"/>
+        <circle cx="54" cy="56" r="36" fill="#1e5240"/>
+        <polygon points="22,38 11,12 36,32" fill="#164030"/><polygon points="86,38 97,12 72,32" fill="#164030"/>
+        <polygon points="24,36 15,16 34,30" fill="#286850"/><polygon points="84,36 93,16 74,30" fill="#286850"/>
+        <path d="M34,53 Q44,47 56,53" stroke="#061008" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M52,53 Q62,47 72,53" stroke="#061008" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="54" cy="64" rx="5" ry="3.5" fill="#44c880"/>
+        <path d="M2,104 Q-26,84 -22,118 Q-16,138 -2,126" stroke="#164030" stroke-width="13" fill="none" stroke-linecap="round"/>
+        <rect x="28" y="114" width="15" height="21" rx="7" fill="#164030"/><rect x="65" y="114" width="15" height="21" rx="7" fill="#164030"/>
+      </g>`
+  },
+  C: {
+    cssClass:"card-cute", typeCode:"C.U.T.E.", typeCn:"人猫相爱型",
+    sub:"上辈子拯救了银河系",
+    tagline:"灵魂双向奔赴 · 神仙关系",
+    desc:"你上辈子可能拯救了银河系，才换来这种神仙关系。它懂你，你懂它，家里有规矩但不压迫，有温柔但不溺爱。它在你难过时靠过来，你在它生病时彻夜不眠。这不是养猫，这是灵魂的双向奔赴。",
+    tags:["双向深情","灵魂伴侣","默契满分","羡煞旁人"],
+    svg: `<defs><radialGradient id="wg" cx="50%" cy="62%" r="44%"><stop offset="0%" stop-color="#ffc820" stop-opacity="0.14"/><stop offset="100%" stop-color="#ffc820" stop-opacity="0"/></radialGradient></defs>
+      <ellipse cx="160" cy="118" rx="134" ry="66" fill="url(#wg)"/>
+      <line x1="10" y1="156" x2="310" y2="156" stroke="rgba(255,208,32,0.1)" stroke-width="1"/>
+      <g transform="translate(44,44)">
+        <rect x="9" y="72" width="15" height="36" rx="7" fill="#583820"/><rect x="28" y="72" width="15" height="36" rx="7" fill="#583820"/>
+        <rect x="3" y="30" width="46" height="44" rx="9" fill="#8b6040"/>
+        <circle cx="26" cy="15" r="19" fill="#d4a070"/>
+        <ellipse cx="26" cy="3" rx="19" ry="9" fill="#381e08"/>
+        <path d="M14,14 Q20,8 26,14" stroke="#281400" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+        <path d="M26,14 Q32,8 38,14" stroke="#281400" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+        <path d="M15,22 Q26,31 37,22" stroke="#b83818" stroke-width="2" fill="#ff7850" stroke-linecap="round"/>
+        <path d="M49,36 Q94,24 100,60 Q100,86 64,94" stroke="#d4a070" stroke-width="14" fill="none" stroke-linecap="round"/>
+        <rect x="-8" y="36" width="13" height="26" rx="6" fill="#d4a070"/>
+      </g>
+      <g transform="translate(126,22)">
+        <ellipse cx="54" cy="108" rx="46" ry="31" fill="#c47818"/>
+        <circle cx="32" cy="64" r="34" fill="#d68828"/>
+        <polygon points="6,48 -5,20 20,42" fill="#c47818"/><polygon points="58,46 63,18 40,40" fill="#c47818"/>
+        <polygon points="8,46 1,24 18,40" fill="#e8a848"/><polygon points="56,44 61,22 42,38" fill="#e8a848"/>
+        <path d="M13,62 Q23,55 33,62" stroke="#280e00" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <path d="M35,60 Q45,53 53,60" stroke="#280e00" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="32" cy="72" rx="5" ry="3.5" fill="#ff7858"/>
+        <path d="M28,75 Q32,80 36,75" stroke="#b83818" stroke-width="1.5" fill="none"/>
+        <line x1="-14" y1="70" x2="24" y2="72" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        <line x1="-14" y1="76" x2="24" y2="74" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        <line x1="40" y1="72" x2="72" y2="70" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        <line x1="40" y1="74" x2="72" y2="76" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        <path d="M100,116 Q128,94 118,138 Q108,158 88,146" stroke="#c47818" stroke-width="12" fill="none" stroke-linecap="round"/>
+        <rect x="26" y="126" width="16" height="20" rx="8" fill="#c47818"/><rect x="68" y="126" width="16" height="20" rx="8" fill="#c47818"/>
+        <text x="82" y="26" font-size="15" opacity="0.65" fill="#c47818">♪</text>
+        <text x="98" y="12" font-size="11" opacity="0.45" fill="#c47818">♫</text>
+      </g>
+      <text x="160" y="36" font-size="22" text-anchor="middle">💛</text>`
+  }
+};
+
+let currentQ = 0;
+let answers = new Array(12).fill(null);
+
+function startQuiz() {
+  showScreen('quiz');
+  renderQuestion(0);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.scrollTop = 0;
+}
+
+function renderQuestion(index) {
+  const q = questions[index];
+  const container = document.getElementById('questions-container');
+  let sectionHtml = q.section ? `<div class="section-tag">${q.sectionIcon} ${q.section} — ${q.sectionDesc}</div>` : '';
+  const optionsHtml = q.options.map((opt, i) => `
+    <button class="option ${answers[index]===i?'selected':''}" onclick="selectOption(${index},${i})">
+      <div class="option-letter">${opt.letter}</div>
+      <div class="option-text">${opt.text}</div>
+    </button>`).join('');
+  container.innerHTML = `${sectionHtml}
+    <div class="question-card">
+      <div class="question-num">QUESTION ${String(index+1).padStart(2,'0')} / 12</div>
+      <div class="question-text">${q.q}</div>
+      <div class="options">${optionsHtml}</div>
+    </div>`;
+  document.getElementById('progress-fraction').textContent = `${index+1} / 12`;
+  document.getElementById('progress-fill').style.width = `${((index+1)/12)*100}%`;
+  document.getElementById('btn-prev').style.display = index > 0 ? 'block' : 'none';
+  const btnNext = document.getElementById('btn-next');
+  btnNext.disabled = answers[index] === null;
+  btnNext.textContent = index === 11 ? '查看结果 🐾' : '下一题 →';
+  document.getElementById('quiz').scrollTop = 0;
+}
+
+function selectOption(qIndex, optIndex) {
+  answers[qIndex] = optIndex;
+  document.querySelectorAll('.option').forEach((el, i) => el.classList.toggle('selected', i === optIndex));
+  document.getElementById('btn-next').disabled = false;
+}
+
+function nextQuestion() {
+  if (answers[currentQ] === null) return;
+  if (currentQ === 11) { showResult(); return; }
+  currentQ++;
+  renderQuestion(currentQ);
+}
+
+function prevQuestion() {
+  if (currentQ === 0) return;
+  currentQ--;
+  renderQuestion(currentQ);
+}
+
+function showResult() {
+  const allVotes = {};
+  questions.forEach((q, i) => {
+    if (answers[i] === null) return;
+    const val = q.options[answers[i]].val;
+    allVotes[val] = (allVotes[val] || 0) + 1;
+  });
+  const catScore = { B:0, S:0, F:0, C:0 };
+  for (const [k, v] of Object.entries(allVotes)) {
+    if (['B'].includes(k)) catScore.B += v;
+    if (['S','O','P'].includes(k)) catScore.S += v;
+    if (['F','I','A','E'].includes(k)) catScore.F += v;
+    if (['C','U','T','M'].includes(k)) catScore.C += v;
+  }
+  let finalType = 'C', maxScore = 0;
+  for (const [k, v] of Object.entries(catScore)) {
+    if (v > maxScore) { maxScore = v; finalType = k; }
+  }
+  const r = RESULTS[finalType];
+  const tagsHtml = r.tags.map(t => `<span class="r-tag"># ${t}</span>`).join('');
+  document.getElementById('result-card').innerHTML = `
+    <div class="result-card ${r.cssClass}">
+      <span class="chip">人猫关系测评结果</span>
+      <div class="title-row">
+        <span class="t-en">${r.typeCode}</span>
+        <span class="t-sep">/</span>
+        <span class="t-cn">${r.typeCn}</span>
+      </div>
+      <div class="r-sub">${r.sub}</div>
+      <div class="illus"><svg viewBox="0 0 320 164">${r.svg}</svg></div>
+      <div class="r-tagline">${r.tagline}</div>
+      <div class="r-desc">${r.desc}<div class="r-tags">${tagsHtml}</div></div>
+      <button class="btn-retry" onclick="resetQuiz()">🔄 &nbsp;再测一次</button>
+    </div>`;
+  showScreen('result');
+}
+
+function resetQuiz() {
+  currentQ = 0;
+  answers = new Array(12).fill(null);
+  showScreen('cover');
+}
+</script>
+
+</body>
+</html>
