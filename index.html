@@ -157,10 +157,46 @@ border-radius: 26px 26px 0 0;
 .card-fake .btn-retry:hover { box-shadow:0 10px 28px rgba(32,136,80,0.58); }
 .card-cute .btn-retry { background:linear-gradient(180deg,#ffe040,#e08808); color:#1a0e00; border-bottom:5px solid #985005; box-shadow:0 6px 22px rgba(224,136,8,0.45),0 1px 0 rgba(255,240,160,0.4) inset; }
 .card-cute .btn-retry:hover { box-shadow:0 10px 28px rgba(224,136,8,0.58); }
+
+/* share buttons */
+.share-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+margin-bottom: 12px;
+}
+.btn-share {
+padding: 13px 0;
+border-radius: 12px;
+font-family: ‘Space Mono’, monospace;
+font-size: 11px; font-weight: 700; letter-spacing: 2px;
+text-align: center; cursor: pointer;
+border: none; outline: none;
+position: relative; top: 0;
+transition: top 0.10s ease, box-shadow 0.10s ease;
+background: rgba(0,0,0,0.06);
+border: 1.5px solid rgba(0,0,0,0.1);
+color: rgba(0,0,0,0.5);
+}
+.btn-share:hover { top: -2px; background: rgba(0,0,0,0.09); color: rgba(0,0,0,0.7); }
+.btn-share:active { top: 2px; }
+.share-toast {
+position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+background: rgba(0,0,0,0.75); color: #fff;
+font-family: ‘Space Mono’, monospace; font-size: 12px; letter-spacing: 1px;
+padding: 10px 24px; border-radius: 100px;
+opacity: 0; transition: opacity 0.3s;
+pointer-events: none; z-index: 9999; white-space: nowrap;
+}
+.share-toast.show { opacity: 1; }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </head>
 <body>
+
+<div class="share-toast" id="toast"></div>
 
 <!-- ══ COVER ══ -->
 
@@ -472,6 +508,10 @@ function showResult() {
       <div class="illus"><svg viewBox="0 0 320 164">${r.svg}</svg></div>
       <div class="r-tagline">${r.tagline}</div>
       <div class="r-desc">${r.desc}<div class="r-tags">${tagsHtml}</div></div>
+      <div class="share-row">
+        <button class="btn-share" onclick="saveImage()">📸 保存图片</button>
+        <button class="btn-share" onclick="copyLink()">🔗 复制链接</button>
+      </div>
       <button class="btn-retry" onclick="resetQuiz()">🔄 &nbsp;再测一次</button>
     </div>`;
   showScreen('result');
@@ -481,6 +521,56 @@ function resetQuiz() {
   currentQ = 0;
   answers = new Array(12).fill(null);
   showScreen('cover');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function copyLink() {
+  const url = window.location.href.split('?')[0];
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => showToast('✓ 链接已复制，快去发给朋友！'));
+  } else {
+    const el = document.createElement('textarea');
+    el.value = url;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('✓ 链接已复制，快去发给朋友！');
+  }
+}
+
+function saveImage() {
+  showToast('生成中…');
+  const card = document.querySelector('#result-card .result-card');
+  // hide share row and retry btn temporarily
+  const shareRow = card.querySelector('.share-row');
+  const retryBtn = card.querySelector('.btn-retry');
+  shareRow.style.display = 'none';
+  retryBtn.style.display = 'none';
+  html2canvas(card, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: null,
+    logging: false
+  }).then(canvas => {
+    shareRow.style.display = '';
+    retryBtn.style.display = '';
+    const link = document.createElement('a');
+    link.download = 'maobti-result.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('✓ 图片已保存！');
+  }).catch(() => {
+    shareRow.style.display = '';
+    retryBtn.style.display = '';
+    showToast('保存失败，请截图分享');
+  });
 }
 </script>
 
